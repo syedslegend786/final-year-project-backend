@@ -16,14 +16,12 @@ export const requireSignInMiddleware = async (
 
     const user = await verifyToken(token);
     if (user) {
-      const dbUser = await userSchema.findOne({ _id: user.id });
+      const dbUser = await userSchema.findOne({ _id: user._id });
       if (!dbUser) {
         return res.status(401).json({ msg: "Unauthorized" });
       }
       req.user = {
-        id: String(dbUser._id),
-        role: dbUser.role,
-        username: dbUser.username,
+        _id: String(dbUser._id),
       } as SessionUser;
       next();
     } else {

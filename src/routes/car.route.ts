@@ -3,6 +3,7 @@ import { requireSignInMiddleware } from "../middleware/auth.middleware";
 import { carController } from "../controllers/car.controller";
 import multer from "../lib/multer";
 import cloudinary from "../lib/cloudinary";
+import { carSchema } from "../modals/Cars.modal";
 const router = Router();
 
 router.post(
@@ -20,10 +21,10 @@ router.post(
   carController.changeCarImage
 );
 //
-router.get("/cars", carController.getCars);
+router.post("/cars/listings", carController.getCars);
 router.get("/car/:cid", carController.singleCar);
 
-router.get(
+router.post(
   "/company-vehicles",
   requireSignInMiddleware,
   carController.getCompanyVehicles
@@ -36,4 +37,13 @@ router.post(
   requireSignInMiddleware,
   carController.payCarRent
 );
+router.delete("/delete/car/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    await carSchema.findByIdAndDelete(id)
+    return res.status(200).json({ msg: "success" });
+  } catch (error: any) {
+    return res.status(500).json({ msg: error.message })
+  }
+})
 export default router;

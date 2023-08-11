@@ -1,6 +1,8 @@
+import dotev from 'dotenv'
+dotev.config()
 import jwt from "jsonwebtoken";
 import { SessionUser } from "../types";
 
 export const createAccessToken = (data: SessionUser) => {
-  return jwt.sign(data, process.env.SESSION_SECRET as string,{expiresIn:"70d"});
+  return jwt.sign(data, process.env.SESSION_SECRET as string, { expiresIn: "70d" });
 };

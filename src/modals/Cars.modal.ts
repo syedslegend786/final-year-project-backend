@@ -38,6 +38,7 @@ const car = new Schema(
     },
     image: String,
     booked_by: { type: mongoose.Types.ObjectId, ref: "User", require: false },
+    city:String
   },
   {
     timestamps: true,

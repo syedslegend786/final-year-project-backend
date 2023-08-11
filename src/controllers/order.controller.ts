@@ -13,9 +13,9 @@ export const OrderController = {
   },
   getCompanyOrders: async (req: Request, res: Response) => {
     try {
-      console.log("req.user==>", req.user);
+     
       const orders = await OrderModel.find({
-        company: req.user?.id,
+        company: req.user?._id,
         isRead: false,
       }).populate("car booked_by");
       return res.status(200).json(orders);
@@ -26,7 +26,7 @@ export const OrderController = {
   getCompanyOrdersList: async (req: Request, res: Response) => {
     try {
       const orders = await OrderModel.find({
-        company: req.user?.id,
+        company: req.user?._id,
       })
         .populate("car booked_by")
         .sort("isRead");
@@ -49,7 +49,7 @@ export const OrderController = {
   getOrderHistory: async (req: Request, res: Response) => {
     try {
       const orders = await OrderModel.find({
-        booked_by: req.user?.id,
+        booked_by: req.user?._id,
       }).populate("car booked_by");
       return res.status(200).json(orders);
     } catch (error: any) {

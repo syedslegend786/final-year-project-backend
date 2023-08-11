@@ -8,6 +8,9 @@ type getVehiclesApiProps = {
   end_date: string;
   model: string;
   brand: string;
+  city: string
+  page: number,
+  limit: number
 };
 export const carController = {
   create: async (req: Request, res: Response) => {
@@ -15,11 +18,14 @@ export const carController = {
       if (!req.file?.path) {
         return res.status(400).json({ msg: "Image is required." });
       }
+      const dbUser = await userSchema.findById(req.user?._id)
+      if (!dbUser?.city) {
+        return res.status(400).json({ msg: "Kindly complete you company profile." });
+      }
       const image = await uploadImage(req.file?.path);
-      const body = { ...req.body, user: req.user?.id, image: image.secure_url };
+      const body = { ...req.body, user: req.user?._id, image: image.secure_url };
 
-      await carSchema.create(body);
-
+      await carSchema.create({ ...body, city: dbUser.city });
       return res.status(200).json({ msg: "created successfully" });
     } catch (error: any) {
       return res.status(500).json({ msg: error.message });
@@ -37,54 +43,54 @@ export const carController = {
   },
   getCars: async (req: Request, res: Response) => {
     try {
-      const { brand, end_date, model, start_date } =
-        req.query as getVehiclesApiProps;
+      const { brand, end_date, model, start_date, city, limit, page } =
+        req.body as getVehiclesApiProps;
       const s_date = new Date(start_date);
       const e_date = new Date(end_date);
-      console.log(req.query);
+      
+      let _limit = limit || 6
+      let _page = page || 1
+
+      const skip = (page - 1) * limit
+
       const cars = await carSchema.find({
-        $and: [
-          {
-            brand: brand,
-          },
-          {
-            model: model,
-          },
-          {
-            $or: [
-              {
-                start_date: { $exists: false },
-                end_date: { $exists: false },
-              },
-              {
-                start_date: {
-                  $lt: s_date,
-                },
-                end_date: {
-                  $lt: s_date,
-                },
-              },
-              {
-                start_date: {
-                  $gt: e_date,
-                },
-                end_date: {
-                  $gt: e_date,
-                },
-              },
-            ],
-          },
-        ],
-      });
-      return res.status(200).json(cars);
+        city: city,
+        brand: brand,
+        model: model,
+        $or: [
+          { start_date: { $exists: false }, end_date: { $exists: false } },
+          { start_date: { $gt: s_date }, end_date: { $gt: e_date } },
+          { start_date: { $lt: e_date }, end_date: { $lt: e_date } },
+        ]
+      }, {}, { limit: _limit, skip: skip })
+      const total = await carSchema.count({
+        city: city,
+        brand: brand,
+        model: model,
+        $or: [
+          { start_date: { $exists: false }, end_date: { $exists: false } },
+          { start_date: { $gt: s_date }, end_date: { $gt: e_date } },
+          { start_date: { $lt: e_date }, end_date: { $lt: e_date } },
+        ]
+      })
+     
+      return res.status(200).json({ cars, total });
     } catch (error: any) {
       return res.status(500).json({ msg: error.message });
     }
   },
   getCompanyVehicles: async (req: Request, res: Response) => {
     try {
-      const vehicles = await carSchema.find({ user: req.user?.id });
-      return res.status(200).json(vehicles);
+      let { limit, page } = req.body as {
+        page: number
+        limit: number
+      }
+      limit = limit || 6
+      page = page || 1
+      const skip = (page - 1) * limit
+      const vehicles = await carSchema.find({ user: req.user?._id }, {}, { limit, skip });
+      const total = await carSchema.count({ user: req.user?._id })
+      return res.status(200).json({ vehicles, total });
     } catch (error: any) {
       return res.status(500).json({ msg: error.message });
     }
@@ -158,10 +164,10 @@ export const carController = {
         ],
       });
       // update current logged in user..
-      await userSchema.findByIdAndUpdate(req.user?.id, {
+      await userSchema.findByIdAndUpdate(req.user?._id, {
         stripe_session_id: stripeSession.id,
       });
-      console.log(car);
+    
       return res.status(200).json(stripeSession.id);
     } catch (error: any) {
       return res.status(500).json({ msg: error.message });
@@ -171,7 +177,7 @@ export const carController = {
     const { carId } = req.body as {
       carId: string;
     };
-    console.log("file---<", req.file);
+   
     try {
       if (!req.file?.path) {
         return res.status(400).json({ msg: "Image is required." });

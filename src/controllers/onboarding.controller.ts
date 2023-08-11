@@ -8,7 +8,7 @@ export const onboardingController = {
     try {
       const account = await stripe.accounts.create({ type: "express" });
       const user = await userSchema.findOneAndUpdate(
-        { _id: req.user?.id },
+        { _id: req.user?._id },
         {
           stripe_account_id: account.id,
         },
@@ -38,7 +38,7 @@ export const onboardingController = {
   },
   verifyInstructor: async (req: Request, res: Response) => {
     try {
-      const dbUser = await userSchema.findById(req.user?.id);
+      const dbUser = await userSchema.findById(req.user?._id);
       if (!dbUser?.stripe_account_id) {
         return res.status(400).json({ msg: "Something went wrong." });
       }
